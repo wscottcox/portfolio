@@ -1,0 +1,39 @@
+@ECHO OFF
+
+REM ----------------------------------- About this tool -----------------------------------
+REM
+REM This batch file converts GIF files to EPS files. 
+REM
+REM This batch file is based on examples from http://www.imagemagick.org/Usage/windows/#filenames.
+REM It requires ImageMagick and Ghostscript.
+REM
+REM Created July, 2010 by Scott Cox (scottcox@us.ibm.com).
+REM
+REM --------------------------------- Installing the tool --------------------------------- 
+REM
+REM 1. Download and install ImageMagick:
+REM    http://www.imagemagick.org/download/binaries/ImageMagick-6.6.3-0-Q16-windows-dll.exe
+REM
+REM 2. Download and install Ghostscript:
+REM    http://sourceforge.net/projects/ghostscript/files/GPL%20Ghostscript/8.71/gs871w32.exe/download
+REM
+REM 3. Save this batch file to your Desktop.
+REM
+REM -------------------------- Converting GIF files to EPS files --------------------------
+REM
+REM 1. Navigate in Windows Explorer to the folder with the GIF files.
+REM 2. Drag one or more GIF files to the batch file's icon on your Desktop.
+REM    The batch file displays a status window.
+REM    It produces EPS versions of the GIF files and places them in the same folder as the GIF files.
+REM
+REM ---------------------------------- Viewing EPS files ----------------------------------
+REM
+REM To view EPS files on Windows, associate the EPS extension with the 
+REM ImageMagick file viewer (IMDisplay).
+
+FOR %%A IN (%*) DO (
+	convert %%A "%%~dpnA.eps"
+	ECHO Converted %%~nxA to %%~nA.eps
+)
+PAUSE
+EXIT

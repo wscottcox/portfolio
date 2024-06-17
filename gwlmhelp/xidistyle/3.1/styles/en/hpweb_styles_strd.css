@@ -1,0 +1,38 @@
+/* -- HPWEB STYLE SHEET hpweb_styles_strd.css VERSION 1.2 --*/
+
+body,td,th {font-family: Arial, Verdana, Helvetica, Sans-serif; font-size: 12px;}
+
+td img.decoration {display: block;}
+tr.decoration img {display: block;}
+
+a {color: #003366; text-decoration: none;}
+a:active {color: #003366;}
+a:link {color: #003366;}
+a:visited {color: #660066;}
+a:hover {text-decoration: underline;}
+
+a.bold {font-weight: bold;}
+a.small {font-size: 11px;}
+a.udrline {text-decoration: underline;}
+a.udrlinebold {font-weight: bold; text-decoration: underline;}
+a.udrlinesmall {text-decoration: underline; font-size: 11px;}
+
+a.lftnavhdr {font-weight: bold;}
+a.lftnavhdr:visited {font-weight: bold; color: #003366;}
+
+h1 {font-size: 25px; font-weight: normal; margin-bottom: 2px; margin-top: 2px;}
+h2 {font-size: 12px; margin-bottom: 1px; margin-top: 1px; font-weight: normal;}
+h3 {font-size: 12px; margin-bottom: 1px; margin-top: 1px; font-weight: normal;}
+h4 {font-size: 12px; margin-bottom: 1px; margin-top: 1px; font-weight: normal;}
+h5 {font-size: 12px; margin-bottom: 1px; margin-top: 1px; font-weight: normal;}
+
+.bold {font-weight: bold;}
+.small {font-size: 11px;}
+.smallbold {font-size: 11px; font-weight: bold;}
+.srchopt {color: #333333; font-size: 11px;}
+.copyright {color: #666666; font-size: 11px;}
+.color333333 {color: #333333;}
+.color666666 {color: #666666;}
+.color003366 {color: #003366;}
+.color003366bld {color: #003366; font-weight: bold;}
+.srchradbtn {background-color:#E7E7E7;}

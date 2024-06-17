@@ -1,0 +1,84 @@
+#!/usr/bin/perl -w
+
+#Author: Scott Cox
+#Date: Dec 13, 1999
+#Description: Takes an HTML file and prepends a TOC (table of contents)
+#based on heading levels 1-5
+
+#Usage:
+# % gen.TOC.pl <input_file> > <output_file>
+
+# Input is a .html file.
+$usage = "\nusage: $0  <input.html> > <output.html>\n";
+
+@ARGV || die "$usage\n"; 
+# Check that an argument was given
+
+$num = 0;   #Used to generate unique links
+$found = 0; #Used to determine whether file includes the <body> tag
+
+$h2_indent = "&nbsp" x 2;
+$h3_indent = "&nbsp" x 4;
+$h4_indent = "&nbsp" x 6;
+$h5_indent = "&nbsp" x 8;
+
+#For each heading (level 1-5), add a unique "a name" string to the heading
+#and build an array of references to headings
+while(<>){     
+    if(/<h1>(.*)<\/h1>/i){ 
+	$num = $num + 1;
+	push (@TOCarray, "<a href=\"#TOC$num\"><b>$1</b></a><br>\n");
+	s/<h1>/<a name="TOC$num"><\/a><h1>/i;
+    }
+    if(/<h2>(.*)<\/h2>/i){ 
+	$num = $num + 1;
+	push (@TOCarray, "$h2_indent <a href=\"#TOC$num\">$1</a><br>\n");
+	s/<h2>/<a name="TOC$num"><\/a><h2>/i;
+    }
+
+    if(/<h3>(.*)<\/h3>/i){ 
+	$num = $num + 1;
+	push (@TOCarray, "$h3_indent <a href=\"#TOC$num\">$1</a><br>\n");
+	s/<h3>/<a name="TOC$num"><\/a><h3>/i;
+    }
+
+    if(/<h4>(.*)<\/h4>/i){ 
+	$num = $num + 1;
+	push (@TOCarray, "$h4_indent <a href=\"#TOC$num\">$1</a><br>\n");
+	s/<h4>/<a name="TOC$num"><\/a><h4>/i;
+    }
+
+    if(/<h5>(.*)<\/h5>/i){ 
+	$num = $num + 1;
+	push (@TOCarray, "$h5_indent <a href=\"#TOC$num\">$1</a><br>\n");
+	s/<h5>/<a name="TOC$num"><\/a><h5>/i;
+    }
+
+    if(/<body>/){
+	$found = 1;
+    }
+
+    push (@BODYarray, $_);
+}
+
+if($found){
+    #Preserve header of the HTML file
+    $header_string = shift(@BODYarray);
+    until ($header_string =~ /<body>/){
+	print $header_string;
+	$header_string = shift(@BODYarray);
+    }
+
+    print $header_string;
+
+    #Print the TOC generated above
+    print @TOCarray;
+
+    #Print the remainder of the HTML file
+    print @BODYarray;
+} else {
+    
+    die "\nInput file does not include <body> tag.
+         \nAdd <body> and </body> tags appropriately and try again.\n";  
+}
+

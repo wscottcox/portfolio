@@ -1,0 +1,67 @@
+
+From: scox 
+Subject: FM+SGML: promoting/demoting elements via the popup menu
+To: writers
+Date: Sun, 26 Jul 1998 21:50:54 -0500 (CDT)
+
+For those times when you're working in FM+SGML and moving lots of elements
+up or down in the structure, the following *new* menu items/macros may be 
+quite time-saving. 
+
+NB: You must add the macro and menu code included at the end of this
+message to your ~/fminit/fmMacros file on presskit for these enhancements
+to take effect. (This could be complicated by NIS, but we can easily fix
+the problem--ask me if you have any questions.) Of course, you also have to
+read the fmMacros file in--either on FM+SGML startup or by forcing it to be
+read.
+
+I call these menu items/macros because they are keyboard macros that can be
+triggered by certain key sequences or by selecting menu items. 
+
+The keyboard triggers are:
+
+   SHIFT+F3 to promote an element higher in the structure
+
+   SHIFT+F4 to demote an element
+
+NB: If you already use the key sequences above for other tasks, be sure to
+bind the macros to other keys. (Ask me if you have any questions.)
+
+The menu items are located in the Pop Up menu. Access this menu by placing
+your cursor in a FM+SGML and right-clicking (click and hold). I've placed
+the items "Promote(down)" and "Demote(up)" after the "Unwrap" menu item.
+
+Interestingly, in the Structure View, a promoted element is moved downward
+to obtain its elevated status. Similarly, a demoted element is moved upward
+to its lower status. I found this movement confusing, so I added the
+reminders "(down)" and "(up)" to the menu items as noted in the previous
+paragraph. 
+
+Copy the code below the line into your ~/fminit/fmMacros file. Create the
+~/fminit directory and the fmMacros file if the do not already exist. Keep
+the code in the exact order shown here. As always, let me know if you have
+any questions.
+
+=======================================================================
+
+   <Macro Promote
+       <Label Promote(down)>
+       <Trigger +/F3 >
+       <TriggerLabel Shift+F3>
+       <Definition \!EP>
+       <Mode NonMath>>
+
+   <Macro Demote
+       <Label Demote(up)>
+       <Trigger +/F4 >
+       <TriggerLabel Shift+F4>
+       <Definition \!ED>
+       <Mode NonMath>>
+
+<Add Promote <Menu !MakerPopup>>
+<Add Demote <Menu !MakerPopup>>
+
+<Order !MakerPopup.Demote <After !MakerPopup.!ElementUnwrap>>
+<Order !MakerPopup.Promote <After !MakerPopup.Demote>>
+
+

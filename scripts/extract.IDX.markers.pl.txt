@@ -1,0 +1,40 @@
+#!/usr/bin/perl -w
+
+
+$usage = "usage: $0 {<filename>|<bookfile>}\n";
+
+@ARGV || die "$usage\n"; 
+# Check that an argument was given
+$filename = shift(@ARGV);  
+
+# The mifmucker tool is used to save the files to MIF, which is then manipulated. 
+# If you do not have mifmucker, you can use the UNIX tool fmbatch to save to MIF.
+
+#Get MIF for file
+`mifmucker -d 0 -l -struct $filename  /dev/null 2>&1`;
+
+#####################################################
+# Generate IDX.out file (file of all index markers)
+# for user to edit
+#####################################################
+
+open (OUT, ">IDX.out") || die "$0: failed to open output file";
+
+foreach $file (glob("*.mif")){ # Work only on *.mif files
+    open (IN, "<$file") || die "$0: failed to open input file";
+    while(<IN>){ 
+	if(/MType 2/) {
+	    $_ = <IN>;
+	    /<MText `(.*)'>/;
+            $marker_text = $1;
+            $line_of_marker = $.;
+	    $_ = <IN>;
+	    /<MCurrPage `(.*)'>/;
+            $page = $1;
+            print OUT "File: $file\tLine: $line_of_marker\tPage: $page\n$marker_text\n\n";
+	}
+    }
+    close (IN) || die "$0: failed to close input file";
+}
+
+close (OUT) || die "$0: failed to close output file";

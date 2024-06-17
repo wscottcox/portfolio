@@ -1,0 +1,123 @@
+#!/usr/bin/perl
+
+# The mifmucker tool is used to save the MIF files to FrameMaker binaries.
+# If you do not have mifmucker, you can use the UNIX tool fmbatch to save to MIF.
+
+$usage = "usage: $0 \n($0 assumes there is an IDX.out file is in cwd.)\n";
+
+if(@ARGV != 0){
+    print $usage;
+    exit;
+}
+
+if (!(-e "IDX.out")) {die "\nERROR: IDX.out file not found.\n\nDid you run the extract.IDX.markers.pl script yet?\nIs the IDX.out file in another directory somewhere?\n\n";}
+if (-z "IDX.out") {die "\nERROR: IDX.out file has length zero.\n\nThat's odd.\n\n";}
+
+###########################################################################
+# Check IDX.out for :                                                     #
+#     extra lines of marker text                                          #
+#     unknown files                                                       #
+###########################################################################
+
+open (IN, "< IDX.out") || die "$0: failed to open input file\n";
+
+$syntax_problem = 0;
+$extra_line = 0;
+$file_not_found = 0;
+
+while(<IN>){
+
+    if($.%3 == 1){
+	if(!/File: / || !/Line: /){
+	    print "ERROR: Format of file has been compromised on line $.\n";
+	    print "\tBoth \"File: \" and \"Line: \" must appear on the line.\n\n";
+	    $syntax_problem = 1;
+	}
+    }
+
+
+    if(/File:\s(.+)\s+Line:\s+\d+/){
+	$file_to_edit = $1;
+	if (!(-e "$file_to_edit")) {
+	    print "ERROR: $file_to_edit file not found.\n";
+	    print "\tCheck that the spelling in the IDX.out file is correct, then re-run $0.\n\n"; 
+	    $file_not_found = 1;
+	}
+
+        $_ = <IN>;            # Get line with marker text
+        $_ = <IN>;            # Get the blank line 
+
+        if(/\S+/){   # Make sure the line is blank
+            print "ERROR: extra lines in IDX.out starting at line $..\n\tMarker text cannot exceed one line.\n\n";
+            $extra_line = 1;
+        }
+    }
+}
+
+close(IN) || die "Unable to close file"; # Close IDX.out
+
+if(($extra_line == 1) || ($file_not_found == 1) || ($syntax_problem == 1)) {exit;}
+
+#############################################
+# Put markers back in the MIF files.        #
+#############################################
+
+open (IN, "< IDX.out") || die "$0: failed to open input file\n";
+
+$currently_open_file = "";
+
+while(<IN>){
+    if(/File:\s(.+)\s+Line:\s+(\d+)/){
+	$file_to_edit = $1;
+	$line_to_edit = $2;
+	$_ = <IN>;            # Get line with marker text
+	chomp($_);
+	$marker_text = $_;
+        $_ = <IN>;            # Get the blank line (do no-op on it)
+    }
+
+    if($file_to_edit ne $currently_open_file){
+	if($currently_open_file ne ""){
+	    while(<IN1>) {print OUT;} # Print any remaining lines in file
+	    close(IN1) || die "Unable to close file"; # Close $file_to_edit
+	    close(OUT) || die "Unable to close file"; # Close tmp_IDX
+	    rename (tmp_IDX, $currently_open_file) || die "Unable to rename";
+	}
+	open(IN1, "< $file_to_edit") || die "Unable to open input file";
+	open(OUT, "> tmp_IDX") || die "Unable to open output file";
+	$currently_open_file = $file_to_edit;
+    }
+
+    while(<IN1>){
+	if($. != $line_to_edit){
+	    print OUT;
+	} elsif($. == $line_to_edit && /MText/) {
+	    print OUT "\t<MText `$marker_text'>\n";
+	    last;
+	}else{
+	    unlink("tmp_IDX") || die "Unable to unlink";
+	    print "\nERROR: 'MText' expected but not found on line $line_to_edit of $currently_open_file.\n";
+	    print "(You probably altered the line number in the IDX.out file by accident.)\n\n";
+	    exit;
+	}
+	
+    }
+}
+
+while(<IN1>) {print OUT;} # Print any remaining lines in last file mentioned
+                          # in IDX.out
+close(IN1) || die "Unable to close file"; # Close $file_to_edit
+close(OUT) || die "Unable to close file"; # Close tmp_IDX
+rename (tmp_IDX, $currently_open_file) || die "Unable to rename";
+
+close(IN) || die "Unable to close file"; # Close IDX.out
+
+#############
+
+
+# Load mif file back to a FM binary
+
+foreach $file (glob("*.mif")){ # Work only on *.mif files
+    `mifmucker -d 0 -load -struct $file /dev/null 2>&1`;
+    unlink($file) || die "Could not unlink";
+}

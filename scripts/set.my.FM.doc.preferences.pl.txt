@@ -1,0 +1,78 @@
+#!/usr/bin/perl -w
+
+# This script takes a (structured, or unstructured) FM file (or bookfile) and
+# sets my preferences.
+
+# The script uses the mifmucker tool to save FM files to MIF. If you don't 
+# have mifmucker you can use fmbatch on UNIX to save to MIF.
+
+# These preferences relate to:
+#     Units                        Inches
+#     Smart quotes                 On
+#     Smart spaces                 On
+#     Borders                      On
+#     Text Symbols                 On
+#     Zoom setting                 140%
+#     Window size         
+#     Rulers                       On
+#     Formatting ruler             On
+#     Attribute display            None
+#     Attribute editing            Only when required
+#     Available elements           All
+#     XRef updating on open        No      
+#     Line break characters        empty string
+#     (Book)Attribute display      None
+#     (Book)Xref updating on open  No
+
+$usage = "usage: $0 {<filename>|<bookfile>}\n";
+
+@ARGV || die "$usage\n"; 
+# Check that an argument was given
+$filename = shift(@ARGV);  
+
+#Get MIF for file
+`mifmucker -d 0 -l -struct $filename > /dev/null 2>&1`;
+
+foreach $file (glob("*.mif")){ # Work only on *.mif files
+    open (IN, "<$file") || die "$0: failed to open input file";
+    open (OUT, ">mif_tmp") || die "$0: failed to open output file";
+
+    # The loop below matches a string, discards the string, and prints the
+    # desired string in its place. If no match is found, the current string
+    # is fine and is printed as is.
+
+    while(<IN>){ 
+# Document settings
+	if(/^\s*<(Units)/) {print OUT " <$1 Uin> \n"; next}
+	if(/^\s*<(DSmartQuotesOn)/) {print OUT " <$1 Yes> \n"; next}
+	if(/^\s*<(DSmartSpacesOn)/) {print OUT " <$1 Yes> \n"; next}
+	if(/^\s*<(DBordersOn)/) {print OUT " <$1 Yes> \n"; next}
+	if(/^\s*<(DSymbolsOn)/) {print OUT " <$1 Yes> \n"; next}
+	if(/^\s*<(DViewScale)/) {print OUT " <$1 140.0%> \n"; next}
+	if(/^\s*<(DViewRect)/) {print OUT " <$1 461 28 756 894> \n"; next}
+	if(/^\s*<(DRulersOn)/) {print OUT " <$1 Yes> \n"; next}
+	if(/^\s*<(DFullRulersOn)/) {print OUT " <$1 Yes> \n"; next}
+	if(/^\s*<(DAttributeDisplay)/) {print OUT " <$1 None> \n"; next}
+	if(/^\s*<(AttributeDisplay)/) {print OUT " <$1 None> \n"; next}
+	if(/^\s*<(DAttrEditor)/) {print OUT " <$1 WhenRequired> \n"; next}
+	if(/^\s*<(DElementCatalogScope)/) {print OUT " <$1 All> \n"; next}
+	if(/^\s*<(DUpdateXRefsOnOpen)/) {print OUT " <$1 No> \n"; next}
+	if(/^\s*<(DLinebreakChars)/) {print OUT " <$1 `'> \n"; next}
+# Book settings
+	if(/^\s*<(BAttributeDisplay)/) {print OUT " <$1 None> \n"; next}
+	if(/^\s*<(BookUpdateReferences)/) {print OUT " <$1 No> \n"; next}
+	print OUT;
+    }
+
+    close (IN) || die "$0: failed to close input file";
+    close (OUT) || die "$0: failed to close output file";
+
+    # Move output file to input file
+    rename(mif_tmp, $file) || die "Unable to rename.";
+
+    # Load mif file back to a FM binary
+    `mifmucker -d 0 -load -struct $file  /dev/null 2>&1`;
+    unlink($file) || die "Could not unlink";
+}
+
+

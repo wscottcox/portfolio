@@ -1,0 +1,90 @@
+#!/usr/bin/perl -w
+
+# Print "DRAFT" string in background of every page.
+# DRAFT string can be changed on the command line.
+# String can be a single word or a quoted string.
+
+# Input is a PostScript file.
+# Output is another PostScript named the same as the input file.
+
+$usage = "usage: $0 [draft_string] <filename>\n";
+
+@ARGV || die "$usage\n"; 
+# Check that an argument was given
+
+$number_of_args = @ARGV; 
+
+if($number_of_args == 1){    
+    $filename = shift(@ARGV);  
+    if(-e $filename){             # Check if $filename exists;
+	$draft_string = "DRAFT";  # if not, exit
+    } else {                     
+	print "$0: File $filename not found.\n";	
+	exit 1;
+    }
+}
+
+if($number_of_args == 2){
+    $draft_string = shift(@ARGV);  # Get draft string
+    $filename = shift(@ARGV);      # Get file name
+    if(!(-e $filename)){   # If file does not exist, exit
+	print "$0: File $filename not found.\n";	
+	exit 1;
+    }
+}
+
+open (IN,"<$filename") || die "$0: failed to open input file";
+open (OUT,">ps_tmp") || die "$0: failed to open output file";
+
+# Print all lines to OUT until "AcccurateScreens" is located
+while(<IN>){     
+    if(!/AcccurateScreens/){ 
+	print OUT;
+    } else {
+	last;
+    }
+}
+print OUT; # print line containing AcccurateScreens to file
+           # YES--Acccurate is misspelled in the FM-generated PostScript
+           # for now
+
+# Insert PostScript code for printing the watermark
+print OUT "\n";
+print OUT "% Prelude to show a draft string on every page.\n";
+print OUT "($draft_string)\n";
+print OUT "/DRAFTDICT 10 dict def\n";
+print OUT "DRAFTDICT begin\n";
+print OUT "/DRAFTSTRING exch def\n";
+print OUT "/bd /Helvetica-Bold findfont def\n";
+print OUT "/od bd maxlength 1 add dict def\n";
+print OUT "    bd {exch dup /FID ne {exch od 3 1 roll put} {pop pop} ifelse} forall\n";
+print OUT "od /FontName /Outline0 put od /PaintType 2 put od /StrokeWidth 0 put\n";
+print OUT "/Outline0 od definefont pop\n";
+print OUT "    /DRAFT { gsave\n";
+print OUT "    [1 3] 0 setdash 0.2 setgray\n";
+print OUT "     initmatrix\n";
+print OUT "    /Outline0 findfont setfont\n";
+print OUT "    DRAFTSTRING dup stringwidth pop 8.875 exch div dup 72 mul dup scale\n";
+print OUT "    52.3 rotate 2.5 exch div -.35 translate\n";
+print OUT "    0 0 moveto show\n";
+print OUT "	grestore } def\n";
+print OUT "/oldshow /showpage load def\n";
+print OUT "/oldcopy /copypage load def\n";
+print OUT "end\n";
+print OUT "    /showpage { DRAFTDICT begin DRAFT oldshow end } def\n";
+print OUT "    /copypage { DRAFTDICT begin DRAFT oldcopy end } def\n";
+print OUT "% End of draft prelude\n";
+
+while(<IN>){  # Print rest of file to the output file
+    print OUT;
+}
+
+close (IN) || die "$0: failed to close input file";
+close (OUT) || die "$0: failed to close output file";
+
+# Make backup file
+rename($filename, "$filename.bak") || die "Unable to rename.";
+
+# Move output file to input file
+rename(ps_tmp, $filename) || die "Unable to rename.";
+

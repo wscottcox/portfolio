@@ -1,0 +1,63 @@
+Arbortext Editor has a compare_files() function that takes two files as input and 
+generates a third file that shows the differences between the two input files. 
+The generated file shows the changes by placing the differences in <Insert> and <Delete> XML tags.
+
+You can repeatedly use this function in a file that you call from Arbortext Editor to
+quickly create comparison files. This feature can be quite time-saving when going through
+edits from your editor and comparing the changes.
+
+To create such a file and call it from Arbortext editor:
+
+1. Place the edited XML files in a directory named edited.
+
+2. Create two directories at the same level as the edited directory.
+   Name these directories originals and diffs.
+
+3. Copy the original files into the originals directory.
+
+4. Copy and paste the following perl code into a file that you name tmp.pl:
+
+      #!/usr/bin/perl
+
+      open(F1, "ls |") || die "Could not get list of files: $!\n";
+      open(F2, ">SOURCE_THIS_FILE.txt") || die "Could not open output file: $!\n";
+
+      while(<F1>){
+          if($_ =~ /(.*).dita/) {
+            print F2 "compare_files(\"$1.dita\", \"../edited/$1.dita\", \"../diffs/$1.dita\");\n";
+          }
+      }
+
+      close(F1);
+      close(F2);
+
+5. Place tmp.pl in your originals directory.
+
+6. Run tmp.pl to create a input file for Arbortext editor.
+
+   On UNIX, run the script using this command:
+      ./tmp.pl
+
+   On Windows, run the script in a command window:
+      perl tmp.pl
+
+   The perl script creates a new file called SOURCE_THIS_FILE.txt.
+
+7. Using Windows Explorer, navigate to the originals directory and
+   double-click any .dita file to open the file in Arbortext Editor.
+
+   This step ensures that Arbortext Editor can open the files as listed
+   with their relative paths in the SOURCE_THIS_FILE.txt file.
+
+8. Close the .dita file you just opened but leave Arbortext Editor open.
+
+9. Run the SOURCE_THIS_FILE.txt file by entering "source SOURCE_THIS_FILE.txt" 
+   in the Arbortext Editor command pane at the bottom of the Arbortext Editor window.
+
+   If the command pane is not visible, select Tools > Preferences, select
+   the "Command Line" box, and click OK.
+
+   Arbortext Editor generates the comparison files in the ../diffs directory. These comparison
+   files use the names of the original files so that after you approve or reject the changes 
+   in the comparison file, you can copy it over the original file in source control without
+   renaming it.

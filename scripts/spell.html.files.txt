@@ -1,0 +1,32 @@
+#!/bin/csh -f
+
+# Author: scox
+# Date: Jun 06, 2001
+
+# This script uses the lynx command and the spell command to spell check
+# HTML files.
+
+# You can specify a single HTML file on the command line. lynx gets the
+# text version and pipes it to the spell command. 
+# If no file is specified on the command line, this script spell checks
+# all .html and .htm files in the cwd.
+
+#USAGE:
+# % spell.html.files. [file]
+
+# Set variable to lynx location on current machine:
+setenv lynx "/usr/local/doctools/bin/lynx"
+
+if ($* != '') then
+	 echo "\n### Spellchecking $* ###\n" 
+	$lynx $* -nolist -dump | spell
+
+else
+	# For every file--in cwd--that ends in .html or .htm, use lynx to
+	# get a text version and pipe it to spell:  
+	foreach file (*.html *.htm) >& /dev/null # dev/null if no match found
+		echo "\n### Spellchecking $file ###\n" 
+		$lynx $file -nolist -dump | spell
+	end
+
+endif

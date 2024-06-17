@@ -1,0 +1,49 @@
+#!/usr/bin/perl -w
+
+# This script takes a FM file or book (structured or unstructured) and
+# turns change bars on for the file (or entire book).
+
+# The mifmucker tool is used to save the files to MIF, which is then manipulated. 
+# If you do not have mifmucker, you can use the UNIX tool fmbatch to save to MIF.
+
+$usage = "usage: $0 {<filename>|<bookfile>}\n";
+
+@ARGV || die "$usage\n"; 
+# Check that an argument was given
+$filename = shift(@ARGV);  
+
+#Get MIF for file
+`mifmucker -d 0 -l -struct $filename  /dev/null 2>&1`;
+
+foreach $file (glob("*.mif")){ # Work only on *.mif files
+    open (IN, "<$file") || die "$0: failed to open input file";
+    open (OUT, ">mif_tmp") || die "$0: failed to open output file";
+
+    # The loop below matches a string, discards the string, and prints the
+    # desired string in its place. If no match is found, the current string
+    # is fine and is printed as is.
+
+    while(<IN>){ 
+# Document settings
+	if(/^\s*<(DAutoChBars)/) {print OUT " <$1 Yes> \n"; next}
+	if(/^\s*<(DChBarGap)/) {print OUT " <$1 0.07> \n"; next}
+	if(/^\s*<(DChBarWidth)/) {print OUT " <$1 0.03> \n"; next}
+	if(/^\s*<(DChBarPosition)/) {print OUT " <$1 RightOfCol> \n"; next}
+	if(/^\s*<(DChBarColor)/) {print OUT " <$1 ColorIsBlack> \n"; next}
+	print OUT;
+    }
+
+    close (IN) || die "$0: failed to close input file";
+    close (OUT) || die "$0: failed to close output file";
+
+    # Move output file to input file
+    rename(mif_tmp, $file) || die "Unable to rename.";
+
+    # Load mif file back to a FM binary
+    `mifmucker -d 0 -load -struct $file /dev/null 2>&1`;
+    unlink($file) || die "Could not unlink";
+}
+
+
+
+

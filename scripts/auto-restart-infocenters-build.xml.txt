@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+
+<project name="restart-infocenters" default="help" basedir="."> 
+
+<!-- Overview:
+This ant file is intended to run every five minutes via cron. 
+(Called by auto-restart-infocenters-wrapper.sh to get env. vars set correctly.)
+For each run of this ant file, it performs one of the following actions for each IC:
+   * Does nothing if the IC is up and has no status file
+   * Creates a status file if the IC is down and a status file does not exist
+   * Deletes a status file if the IC is up and a status file exists
+   * Starts an IC and sends email about the restart
+     if the IC is down and has a status file more than 15 minutes old
+
+To add an IC to this file, add a line in the "restart-ICs" target at the end of the file.
+-->
+
+<!-- Include the following line to pull in ant-contrib-1.0b3.jar, which provides <shellscript>. -->
+<taskdef resource="net/sf/antcontrib/antlib.xml">
+  <classpath>
+    <pathelement location="/usr/local/ant/lib/ant-contrib-1.0b3.jar"/>
+  </classpath>
+</taskdef>
+
+<!-- Call three targets from this target; only one target should run, based on conditions. -->
+<target name="check-IC">
+
+  <!-- Set condition for deleting file that indicates the IC is down. -->
+  <condition property="IC-is-up-and-file-exists">
+    <and>
+      <http url="http://pubs.motive.com/${param1}"/>
+      <available file="auto-restart-infocenters-status-files/${param1}-infocenter-down"/>
+    </and>
+  </condition>
+
+  <!-- Create timestamp to check whether file is at least 15 minutes old. -->
+  <tstamp> 
+    <format property="time_stamp"
+	    offset="-15"
+	    unit="minute"
+	    pattern="MM/dd/yyyy hh:mm:ss aa"/>
+  </tstamp>
+
+  <!-- Set condition for starting IC. -->
+  <!-- "islastmodified" condition is true when file does not exist, so check "available" condition also. -->
+  <condition property="IC-is-NOT-up-and-file-is-old">
+    <and>
+      <not><http url="http://pubs.motive.com/${param1}"/></not>
+      <available file="auto-restart-infocenters-status-files/${param1}-infocenter-down"/>
+      <islastmodified dateTime="${time_stamp}" mode="before">
+        <file file="auto-restart-infocenters-status-files/${param1}-infocenter-down"/>
+      </islastmodified>
+    </and>
+  </condition>
+
+  <!-- Set condition for creating file that indicates the IC is down. -->
+  <condition property="IC-is-NOT-up-and-file-DOES-NOT-exist">
+    <and>
+      <not><http url="http://pubs.motive.com/${param1}"/></not>
+      <not><available file="auto-restart-infocenters-status-files/${param1}-infocenter-down"/></not>
+    </and>
+  </condition>
+
+  <!-- Call the three targets. --> 
+  <antcall target="delete-file"><param name="param2" value="${param1}"/></antcall>
+  <antcall target="start-IC"><param name="param2" value="${param1}"/></antcall>
+  <antcall target="create-file"><param name="param2" value="${param1}"/></antcall>
+
+</target>
+
+<!-- If IC is okay now but has been down, delete file that indicates it is down. -->
+<target name="delete-file" if="IC-is-up-and-file-exists">
+  <delete file="auto-restart-infocenters-status-files/${param2}-infocenter-down"/>
+</target>
+
+<!-- If IC has been down 15 minutes, start it and send email. NB: We don't check that the start worked. -->
+<target name="start-IC" if="IC-is-NOT-up-and-file-is-old">
+  <!-- Delete file in case the IC is not up for the next check, preventing a return to this target. -->
+  <delete file="auto-restart-infocenters-status-files/${param2}-infocenter-down"/>
+
+  <!-- Check for and kill any zombie process on the port: -->
+  <shellscript shell="bash">
+    # Get port number from infocenter.properties:
+    port=`grep -E ^wrapper.app.parameter.6 /opt/${param2}-infocenter/infocenter.properties  | awk -F"=" '{print $2}'`
+
+    # Get PID for process running on the port:
+    PID1=`pgrep -u root -f $port`
+
+    # Check status ($?) of the pgrep; "0" means there was a match, so get parent PIDs and kill the main parent:
+    if [ $? -eq 0 ]
+    then
+       # Get PID for parent (the java process) of $PID1:
+       PID2=`ps -o ppid= -p $PID1`
+
+       # Get PID for parent (the wrapper) of $PID2:
+       PID3=`ps -o ppid= -p $PID2`
+
+       kill -9 $PID3
+
+       # Sleep to make sure process is completely dead and the new IC can start cleanly:
+       sleep 40
+    fi
+  </shellscript>
+
+  <exec executable="ant">
+    <arg line="-f /opt/${param2}-infocenter/build.xml start"/>
+  </exec>
+
+  <!-- Use a timestamp in the message below to prevent listserv from complaining that I have already sent the exact same message. -->
+  <exec executable="date" outputproperty="timestamp"/>
+
+  <mail 
+     from="mpd-techpubs-buildmgr@list.nokia.com" 
+     tolist="mpd-techpubs-buildmgr@list.nokia.com" 
+     subject="AUTOMATIC RESTART: ${param2} infocenter"
+     mailhost="mail-internal.motive.com"
+     failonerror="false">
+    <message>
+      Please ignore this message if you are not interested in the ${param2} infocenter.
+
+      The ${param2} infocenter was unavailable for over 15 minutes and was automatically restarted.
+
+      If you need to prevent automatic restarts of this infocenter, contact
+      mpd-techpubs-buildmgr@list.nokia.com.
+
+      Doctools staff: The sphere.motive.com:/opt/auto-restart-infocenters-build.xml ant file does these checks.
+
+      ${timestamp}
+    </message>
+  </mail>
+</target>
+
+<!-- If IC is down but has no file that indicates it is down, create the file. -->
+<target name="create-file" if="IC-is-NOT-up-and-file-DOES-NOT-exist">
+  <touch file="auto-restart-infocenters-status-files/${param2}-infocenter-down"/>
+</target>
+
+
+
+<target name="restart-ICs"> 
+
+<!-- As of Dec 2013, we have 20 infocenters. An IC check that does nothing takes 3 seconds.
+     Give each check 10 seconds to allow for restarts. So, run using cron no more often than every 200 seconds or 3.5 minutes. -->
+
+  <!-- Add check-IC line for each IC. -->
+  <antcall target="check-IC"><param name="param1" value="analyticsapplications"/></antcall>
+  <antcall target="check-IC"><param name="param1" value="cdp"/></antcall>
+  <antcall target="check-IC"><param name="param1" value="daf"/></antcall>
+  <antcall target="check-IC"><param name="param1" value="dmp"/></antcall>
+  <antcall target="check-IC"><param name="param1" value="eol"/></antcall>
+  <antcall target="check-IC"><param name="param1" value="hdm"/></antcall>
+  <antcall target="check-IC"><param name="param1" value="homesolutions"/></antcall>
+  <antcall target="check-IC"><param name="param1" value="kms"/></antcall>
+  <antcall target="check-IC"><param name="param1" value="mccibcm"/></antcall>
+  <antcall target="check-IC"><param name="param1" value="m2m"/></antcall>
+  <antcall target="check-IC"><param name="param1" value="mobility"/></antcall>
+  <antcall target="check-IC"><param name="param1" value="na"/></antcall>
+  <antcall target="check-IC"><param name="param1" value="pubs"/></antcall>
+  <antcall target="check-IC"><param name="param1" value="smallcell"/></antcall>
+  <antcall target="check-IC"><param name="param1" value="smp"/></antcall>
+  <antcall target="check-IC"><param name="param1" value="smpreview"/></antcall>
+  <antcall target="check-IC"><param name="param1" value="test"/></antcall>
+  <antcall target="check-IC"><param name="param1" value="testdocs"/></antcall>
+
+</target>
+
+</project> 
+

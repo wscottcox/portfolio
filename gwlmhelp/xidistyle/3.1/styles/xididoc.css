@@ -1,0 +1,62 @@
+/* $Header: /home/cvs/xidi/xidistyle/3.1/styles/xididoc.css,v 1.1 2003/09/16 00:24:04 leth Exp $
+ * CSS Style sheet for DocBook markup
+ */
+
+div.msgexplan {
+    /* Indented so that message explanation is subordinate to message text */
+    margin-left: +2ex;
+}
+
+div.msginfo {
+    /* Indented so that message info is subordinate to message text */
+    margin-left: +2ex;
+}
+
+div.sidebar {
+    /* Sidebars float to the left of text */
+    float: left;
+}
+
+.sidebar-end {
+    /* Clear any floating elements, e.g. sidebars */
+    clear: both;
+}
+
+div.variablelist {
+    /* Add indentation to the entire variable list */
+    margin-left: +2ex;
+}
+
+div.informalexample {
+    /* Add indentation to the example block */
+    margin-left: +2ex;
+}
+
+p.list-compact {
+    /* Paragraph style for compact paragraphs in a listitem */
+    margin-top: 0;
+    margin-bottom: 1ex;
+}
+
+p.list-initial {
+    /* Paragraph style for the initial paragraph in a listitem */
+    margin-top: 0.5ex;
+    margin-bottom: 1.5ex;
+}
+
+p.list-internal {
+    /* Paragraph style for normal spacing paragraphs within a listitem */
+    margin-top: 0;
+    margin-bottom: 1.5ex;
+}
+
+p.list-last {
+    /* Paragraph style for the last paragraph in a listitem */
+    margin-top: 0;
+    margin-bottom: 2ex;
+}
+
+tt, pre.screen {
+    /* Font used for computeroutput, screen, and literallayout */
+    font-family: courier new, courier, monospace;
+}
